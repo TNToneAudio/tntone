@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TNTone | Portal de Demos</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --negro:       #0a0a0a;
+            --negro-medio: #111111;
+            --negro-card:  #141414;
+            --oro:         #C9A84C;
+            --oro-claro:   #E8C97A;
+            --oro-oscuro:  #8B6914;
+            --oro-palido:  #F5E6B8;
+            --blanco-humo: #e8dfc8;
+            --gris-oscuro: #2a2a2a;
+            --borde:       rgba(201,168,76,0.28);
+            --borde-hover: rgba(201,168,76,0.65);
+            --verde-ok:    #2d6a4f;
+            --rojo-err:    #7b2d2d;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--negro);
+            color: var(--blanco-humo);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 400;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== FONDO ANIMADO ===== */
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== OVERLAY TEXTURA GRANO ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 180px;
+            opacity: 0.45;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ===== NAVBAR ===== */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,10,0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--borde);
+            padding: 0 2rem;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, var(--oro-oscuro), var(--oro), var(--oro-claro), var(--oro));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            color: var(--oro);
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            opacity: 0.75;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 100px 2rem 80px;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro), transparent);
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--oro);
+            margin-bottom: 28px;
+        }
+
+        .hero-eyebrow::before,
+        .hero-eyebrow::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 1px;
+            background: var(--oro);
+            opacity: 0.6;
+        }
+
+        .hero-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 8px;
+            background: linear-gradient(180deg, var(--oro-claro) 0%, var(--oro) 40%, var(--oro-oscuro) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 30px rgba(201,168,76,0.3));
+        }
+
+        .hero-subtitle-small {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 1rem;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.6;
+            margin-bottom: 30px;
+        }
+
+        .hero-desc {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            font-style: italic;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+            max-width: 580px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        /* Visualizador animado */
+        .visualizer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            height: 48px;
+            margin-bottom: 10px;
+        }
+
+        .v-bar {
+            width: 5px;
+            border-radius: 3px 3px 0 0;
+            animation: vibe 1.4s ease-in-out infinite alternate;
+            background: linear-gradient(to top, var(--oro-oscuro), var(--oro), var(--oro-claro));
+        }
+
+        @keyframes vibe {
+            from { height: 4px; opacity: 0.5; }
+            to   { height: 38px; opacity: 1; }
+        }
+
+        /* ===== ORNAMENTO ===== */
+        .ornament {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin: 0 auto 50px;
+        }
+
+        .ornament-line {
+            width: 80px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro));
+        }
+
+        .ornament-line.right { background: linear-gradient(90deg, var(--oro), transparent); }
+
+        .ornament-diamond {
+            width: 8px;
+            height: 8px;
+            background: var(--oro);
+            transform: rotate(45deg);
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 1.5rem 80px;
+        }
+
+        .form-card {
+            background: linear-gradient(160deg, rgba(25,20,10,0.95) 0%, rgba(14,14,14,0.98) 100%);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            padding: 52px 48px;
+            position: relative;
+            box-shadow:
+                0 0 0 1px rgba(201,168,76,0.08),
+                0 30px 80px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(201,168,76,0.1);
+        }
+
+        /* Esquinas decorativas */
+        .form-card::before,
+        .form-card::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: var(--oro);
+            border-style: solid;
+            opacity: 0.7;
+        }
+
+        .form-card::before {
+            top: -1px; left: -1px;
+            border-width: 2px 0 0 2px;
+        }
+
+        .form-card::after {
+            bottom: -1px; right: -1px;
+            border-width: 0 2px 2px 0;
+        }
+
+        .corner-tr, .corner-bl {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: var(--oro);
+            border-style: solid;
+            opacity: 0.7;
+        }
+
+        .corner-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+        .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+
+        .form-card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            letter-spacing: 5px;
+            color: var(--oro);
+            text-align: center;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .form-card-sub {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            text-align: center;
+            color: var(--blanco-humo);
+            opacity: 0.5;
+            font-size: 0.95rem;
+            margin-bottom: 42px;
+        }
+
+        /* ===== FORM FIELDS ===== */
+        .field-group {
+            margin-bottom: 26px;
+        }
+
+        label {
+            display: block;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--oro);
+            margin-bottom: 10px;
+        }
+
+        label span {
+            color: var(--oro-oscuro);
+            margin-right: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--borde);
+            color: var(--blanco-humo);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 400;
+            padding: 14px 18px;
+            outline: none;
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+            border-radius: 2px;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--oro);
+            background: rgba(201,168,76,0.05);
+            box-shadow: 0 0 0 1px rgba(201,168,76,0.2), 0 4px 24px rgba(201,168,76,0.08);
+            color: var(--oro-palido);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(232,223,200,0.25);
+            font-weight: 300;
+        }
+
+        select option {
+            background: #1a1500;
+            color: var(--blanco-humo);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 110px;
+            line-height: 1.6;
+        }
+
+        /* SELECT personalizado con flecha */
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: '◆';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--oro);
+            font-size: 0.55rem;
+            pointer-events: none;
+        }
+
+        /* ===== PHONE ROW ===== */
+        .phone-row {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 10px;
+        }
+
+        /* ===== FILE UPLOAD ===== */
+        .file-upload-area {
+            border: 1px dashed var(--borde);
+            border-radius: 2px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            background: rgba(255,255,255,0.02);
+            position: relative;
+        }
+
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: var(--oro);
+            background: rgba(201,168,76,0.04);
+        }
+
+        .file-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--oro);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .upload-label-main {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+        }
+
+        .upload-label-main strong {
+            color: var(--oro);
+            font-weight: 600;
+        }
+
+        .upload-note {
+            font-size: 0.72rem;
+            color: var(--blanco-humo);
+            opacity: 0.35;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        #filename-display {
+            margin-top: 10px;
+            font-size: 0.82rem;
+            color: var(--oro);
+            font-weight: 500;
+            letter-spacing: 1px;
+            min-height: 18px;
+        }
+
+        /* ===== DIVIDER ===== */
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 34px 0 28px;
+        }
+
+        .form-divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--borde), transparent);
+        }
+
+        .form-divider-diamond {
+            width: 6px;
+            height: 6px;
+            background: var(--oro-oscuro);
+            transform: rotate(45deg);
+            flex-shrink: 0;
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .btn-submit {
+            width: 100%;
+            margin-top: 36px;
+            padding: 18px 30px;
+            background: linear-gradient(135deg, var(--oro-oscuro) 0%, var(--oro) 50%, var(--oro-oscuro) 100%);
+            background-size: 200% 100%;
+            border: none;
+            color: var(--negro);
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-position 0.4s, box-shadow 0.3s, transform 0.2s;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border: 1px solid rgba(255,255,255,0.15);
+            pointer-events: none;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background-position: 100% 0;
+            box-shadow: 0 8px 32px rgba(201,168,76,0.35), 0 0 0 1px var(--oro);
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ===== MENSAJE ===== */
+        .msg-box {
+            display: none;
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 2px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-align: center;
+            animation: fadeUp 0.35s ease;
+        }
+
+        .msg-box.ok {
+            display: block;
+            background: rgba(45,106,79,0.15);
+            border: 1px solid rgba(45,106,79,0.4);
+            color: #5ec99a;
+        }
+
+        .msg-box.err {
+            display: block;
+            background: rgba(123,45,45,0.15);
+            border: 1px solid rgba(123,45,45,0.4);
+            color: #e07070;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 36px 2rem;
+            border-top: 1px solid var(--borde);
+            background: rgba(0,0,0,0.5);
+        }
+
+        .footer-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            letter-spacing: 6px;
+            color: var(--oro);
+            opacity: 0.6;
+            margin-bottom: 8px;
+        }
+
+        .footer-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 0.85rem;
+            color: var(--blanco-humo);
+            opacity: 0.3;
+            letter-spacing: 2px;
+        }
+
+        /* ===== BARRA INFERIOR ===== */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--negro), var(--oro-oscuro), var(--oro), var(--oro-claro), var(--oro), var(--oro-oscuro), var(--negro));
+            z-index: 200;
+        }
+
+        /* ===== LOADING OVERLAY ===== */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-ring {
+            width: 56px;
+            height: 56px;
+            border: 3px solid rgba(201,168,76,0.2);
+            border-top-color: var(--oro);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            letter-spacing: 4px;
+            color: var(--oro);
+            opacity: 0.8;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .form-card { padding: 36px 24px; }
+            .phone-row { grid-template-columns: 140px 1fr; }
+            .hero { padding: 70px 1.5rem 60px; }
+            .nav-tagline { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fondo canvas animado -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Overlay de carga -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-ring"></div>
+        <div class="loading-text">PROCESANDO DEMO</div>
+    </div>
+
+    <!-- NAV -->
+    <nav>
+        <a class="nav-logo" href="#">TNTone</a>
+        <span class="nav-tagline">Ingeniería de Sonido</span>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <div class="hero-eyebrow">Recepción de demos</div>
+        <h1 class="hero-title">TNTone</h1>
+        <p class="hero-subtitle-small">Sound Engineering</p>
+
+        <p class="hero-desc">
+            Entrega tu demo, confía en el proceso.<br>
+            Masterización · Mezcla · Arreglos · Revisión técnica.
+        </p>
+
+        <div class="visualizer">
+            <div class="v-bar" style="animation-delay:0.0s"></div>
+            <div class="v-bar" style="animation-delay:0.15s"></div>
+            <div class="v-bar" style="animation-delay:0.05s"></div>
+            <div class="v-bar" style="animation-delay:0.25s"></div>
+            <div class="v-bar" style="animation-delay:0.1s"></div>
+            <div class="v-bar" style="animation-delay:0.35s"></div>
+            <div class="v-bar" style="animation-delay:0.2s"></div>
+            <div class="v-bar" style="animation-delay:0.4s"></div>
+            <div class="v-bar" style="animation-delay:0.3s"></div>
+            <div class="v-bar" style="animation-delay:0.45s"></div>
+            <div class="v-bar" style="animation-delay:0.22s"></div>
+            <div class="v-bar" style="animation-delay:0.08s"></div>
+        </div>
+    </header>
+
+    <!-- ORNAMENTO -->
+    <div class="ornament">
+        <div class="ornament-line"></div>
+        <div class="ornament-diamond"></div>
+        <div class="ornament-diamond" style="background:var(--oro-claro);transform:rotate(45deg) scale(0.65)"></div>
+        <div class="ornament-diamond"></div>
+        <div class="ornament-line right"></div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="form-wrapper">
+        <div class="form-card">
+            <div class="corner-tr"></div>
+            <div class="corner-bl"></div>
+
+            <h2 class="form-card-title">Portal de Carga</h2>
+            <p class="form-card-sub">Completa cada campo con precisión. Tu arte merece atención.</p>
+
+            <form id="mainForm">
+                <!-- 1. Artista -->
+                <div class="field-group">
+                    <label><span>01</span>Nombre de Banda / Artista</label>
+                    <input type="text" id="artista" name="artista" placeholder="Ej: Los Deambulantes" required>
+                </div>
+
+                <!-- 2. Demo -->
+                <div class="field-group">
+                    <label><span>02</span>Nombre de la Demo</label>
+                    <input type="text" id="demo" name="demo" placeholder="Ej: Fuga la Oruga - Demo v2" required>
+                </div>
+
+                <!-- 3. Servicio -->
+                <div class="field-group">
+                    <label><span>03</span>Tipo de Servicio</label>
+                    <div class="select-wrapper">
+                        <select id="servicio" name="servicio" required>
+                            <option value="" disabled selected>Selecciona un servicio</option>
+                            <option value="Masterización">Masterización</option>
+                            <option value="Mezcla">Mezcla</option>
+                            <option value="Mezcla y Masterización">Mezcla y Masterización</option>
+                            <option value="Arreglos">Arreglos</option>
+                            <option value="Revisión de Demo">Revisión de Demo</option>
+                            <option value="Producción">Producción</option>
+                            <option value="Comentarios de Producción">Comentarios de Producción</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. Archivo -->
+                <div class="field-group">
+                    <label><span>04</span>Archivo de Audio</label>
+                    <div class="file-upload-area" id="dropZone">
+                        <input type="file" id="archivoAudio" name="archivoAudio" accept="*/*" required>
+                        <span class="upload-icon">♪</span>
+                        <p class="upload-label-main"><strong>Haz clic</strong> o arrastra tu archivo aquí</p>
+                        <p class="upload-note">Cualquier formato aceptado · WAV / MP3 / FLAC / AIFF recomendados</p>
+                        <div id="filename-display"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Búsqueda / Notas -->
+                <div class="field-group">
+                    <label><span>05</span>¿Qué buscas con este servicio?</label>
+                    <textarea id="busca" name="busca" placeholder="Describe lo que buscas: claridad, calidez, pegada, balance, referencias de sonido, correcciones específicas..." required></textarea>
+                </div>
+
+                <div class="form-divider">
+                    <div class="form-divider-line"></div>
+                    <div class="form-divider-diamond"></div>
+                    <div class="form-divider-line"></div>
+                </div>
+
+                <!-- 6. Email -->
+                <div class="field-group">
+                    <label><span>06</span>Correo Electrónico</label>
+                    <input type="email" id="email" name="email" placeholder="tu@correo.com" required>
+                </div>
+
+                <!-- 7. Teléfono -->
+                <div class="field-group">
+                    <label><span>07</span>Número de Contacto (WhatsApp)</label>
+                    <div class="phone-row">
+                        <div class="select-wrapper">
+                            <select id="codigoPais" name="codigoPais" required>
+                                <option value="" disabled selected>Código</option>
+                                <option value="+591">🇧🇴 +591 Bolivia</option>
+                                <option value="+54">🇦🇷 +54 Argentina</option>
+                                <option value="+56">🇨🇱 +56 Chile</option>
+                                <option value="+57">🇨🇴 +57 Colombia</option>
+                                <option value="+593">🇪🇨 +593 Ecuador</option>
+                                <option value="+51">🇵🇪 +51 Perú</option>
+                                <option value="+595">🇵🇾 +595 Paraguay</option>
+                                <option value="+598">🇺🇾 +598 Uruguay</option>
+                                <option value="+58">🇻🇪 +58 Venezuela</option>
+                                <option value="+52">🇲🇽 +52 México</option>
+                                <option value="+1">🇺🇸 +1 EEUU/Canadá</option>
+                                <option value="+34">🇪🇸 +34 España</option>
+                                <option value="+55">🇧🇷 +55 Brasil</option>
+                                <option value="+507">🇵🇦 +507 Panamá</option>
+                                <option value="+506">🇨🇷 +506 Costa Rica</option>
+                                <option value="+502">🇬🇹 +502 Guatemala</option>
+                                <option value="+503">🇸🇻 +503 El Salvador</option>
+                                <option value="+504">🇭🇳 +504 Honduras</option>
+                                <option value="+505">🇳🇮 +505 Nicaragua</option>
+                                <option value="+53">🇨🇺 +53 Cuba</option>
+                                <option value="+1-809">🇩🇴 +1-809 R. Dominicana</option>
+                            </select>
+                        </div>
+                        <input type="tel" id="telefono" name="telefono" placeholder="Número sin código de país" required>
+                    </div>
+                </div>
+
+                <!-- SUBMIT -->
+                <button type="submit" class="btn-submit" id="btnEnviar">
+                    Enviar Demo
+                </button>
+
+                <div class="msg-box" id="msgBox"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p class="footer-logo">TNTone</p>
+        <p class="footer-text">© 2026 · Ingeniería de Sonido · Todos los derechos reservados</p>
+    </footer>
+
+    <div class="bottom-bar"></div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+    // ——————————————————————————————————————
+    // CONFIGURACIÓN — Reemplaza estos valores
+    // ——————————————————————————————————————
+    const CONFIG = {
+        // Google Apps Script Web App URL (del script que conecta con Sheets, Drive y Gmail)
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/TU_ID_DEL_SCRIPT/exec',
+
+        // Número de WhatsApp de TNTone (sin + ni espacios, ej: 59171234567)
+        TNTONE_WHATSAPP: '59171234567',
+
+        // Correo de la empresa TNTone
+        CORREO_EMPRESA: 'tntone@tuempresa.com'
+    };
+
+    // ——————————————
+    // FONDO CANVAS
+    // ——————————————
+    (function initCanvas() {
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Partículas doradas
+        const particles = [];
+        const ORO = [
+            'rgba(201,168,76,',
+            'rgba(232,201,122,',
+            'rgba(139,105,20,',
+        ];
+
+        for (let i = 0; i < 80; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                r: Math.random() * 1.8 + 0.3,
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.2,
+                alpha: Math.random() * 0.5 + 0.1,
+                color: ORO[Math.floor(Math.random() * ORO.length)],
+            });
+        }
+
+        // Líneas de audio simuladas
+        const waves = [];
+        for (let i = 0; i < 5; i++) {
+            waves.push({
+                phase: Math.random() * Math.PI * 2,
+                amp: 20 + Math.random() * 40,
+                freq: 0.003 + Math.random() * 0.003,
+                speed: 0.008 + Math.random() * 0.006,
+                y: 0.15 + i * 0.18,
+                alpha: 0.03 + Math.random() * 0.05,
+                colorIdx: i % ORO.length
+            });
+        }
+
+        let t = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Fondo degradado profundo
+            const grad = ctx.createRadialGradient(
+                canvas.width * 0.5, canvas.height * 0.3, 0,
+                canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.8
+            );
+            grad.addColorStop(0,   'rgba(30, 22, 4, 0.95)');
+            grad.addColorStop(0.5, 'rgba(14, 11, 2, 0.97)');
+            grad.addColorStop(1,   'rgba(4, 4, 4, 1)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Brillo central suave
+            const glow = ctx.createRadialGradient(
+                canvas.width * 0.5, canvas.height * 0.25, 0,
+                canvas.width * 0.5, canvas.height * 0.25, canvas.width * 0.5
+            );
+            glow.addColorStop(0,   'rgba(201,168,76,0.06)');
+            glow.addColorStop(0.5, 'rgba(201,168,76,0.02)');
+            glow.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ondas de audio
+            waves.forEach(w => {
+                ctx.beginPath();
+                for (let x = 0; x <= canvas.width; x += 3) {
+                    const y = canvas.height * w.y
+                        + Math.sin(x * w.freq + w.phase + t * w.speed) * w.amp
+                        + Math.sin(x * w.freq * 2.3 + w.phase * 1.7 + t * w.speed * 0.7) * (w.amp * 0.35);
+                    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = ORO[w.colorIdx] + w.alpha + ')';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Partículas
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color + p.alpha + ')';
+                ctx.fill();
+            });
+
+            t++;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    })();
+
+    // ——————————————————
+    // DRAG & DROP archivo
+    // ——————————————————
+    const dropZone      = document.getElementById('dropZone');
+    const archivoInput  = document.getElementById('archivoAudio');
+    const filenameDisp  = document.getElementById('filename-display');
+
+    ['dragenter','dragover'].forEach(e => {
+        dropZone.addEventListener(e, ev => {
+            ev.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave','drop'].forEach(e => {
+        dropZone.addEventListener(e, ev => {
+            dropZone.classList.remove('dragover');
+        });
+    });
+
+    dropZone.addEventListener('drop', ev => {
+        ev.preventDefault();
+        if (ev.dataTransfer.files.length) {
+            archivoInput.files = ev.dataTransfer.files;
+            filenameDisp.textContent = '♪ ' + ev.dataTransfer.files[0].name;
+        }
+    });
+
+    archivoInput.addEventListener('change', () => {
+        if (archivoInput.files[0]) {
+            filenameDisp.textContent = '♪ ' + archivoInput.files[0].name;
+        }
+    });
+
+    // ——————————————
+    // ENVÍO DE FORM
+    // ——————————————
+    const form        = document.getElementById('mainForm');
+    const btnEnviar   = document.getElementById('btnEnviar');
+    const msgBox      = document.getElementById('msgBox');
+    const loadOverlay = document.getElementById('loadingOverlay');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        msgBox.className = 'msg-box';
+
+        const artista   = document.getElementById('artista').value.trim();
+        const demo      = document.getElementById('demo').value.trim();
+        const servicio  = document.getElementById('servicio').value;
+        const busca     = document.getElementById('busca').value.trim();
+        const email     = document.getElementById('email').value.trim();
+        const codigo    = document.getElementById('codigoPais').value;
+        const telefono  = document.getElementById('telefono').value.trim();
+        const archivo   = archivoInput.files[0];
+
+        if (!archivo) {
+            showMsg('Por favor, selecciona un archivo de audio antes de enviar.', 'err');
+            return;
+        }
+
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Procesando...';
+        loadOverlay.classList.add('active');
+
+        try {
+            // Convertir archivo a Base64
+            const base64 = await fileToBase64(archivo);
+
+            const payload = {
+                artista,
+                demo,
+                servicio,
+                busca,
+                email,
+                codigoPais: codigo,
+                telefono,
+                archivoNombre: archivo.name,
+                archivoMime:   archivo.type || 'application/octet-stream',
+                archivoBase64: base64.split(',')[1],
+                fecha: new Date().toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+            };
+
+            const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'ok') {
+                showMsg('✦ Demo enviada con éxito. Te contactaremos pronto.', 'ok');
+                form.reset();
+                filenameDisp.textContent = '';
+            } else {
+                showMsg('Ocurrió un error al enviar. Intenta nuevamente.', 'err');
+            }
+        } catch (err) {
+            console.error(err);
+            showMsg('Error de conexión. Verifica tu internet e intenta de nuevo.', 'err');
+        } finally {
+            loadOverlay.classList.remove('active');
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = 'Enviar Demo';
+        }
+    });
+
+    function fileToBase64(file) {
+        return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.onerror = () => rej(new Error('No se pudo leer el archivo'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showMsg(txt, type) {
+        msgBox.textContent = txt;
+        msgBox.className = 'msg-box ' + type;
+    }
+    </script>
+
+</body>
+</html>

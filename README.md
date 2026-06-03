@@ -1,2 +1,0 @@
-# tntone
-TNTone Sound Engineering

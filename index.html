@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TNTone | Portal de Demos</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --negro:       #0a0a0a;
+            --negro-medio: #111111;
+            --negro-card:  #141414;
+            --oro:         #C9A84C;
+            --oro-claro:   #E8C97A;
+            --oro-oscuro:  #8B6914;
+            --oro-palido:  #F5E6B8;
+            --blanco-humo: #e8dfc8;
+            --gris-oscuro: #2a2a2a;
+            --borde:       rgba(201,168,76,0.28);
+            --borde-hover: rgba(201,168,76,0.65);
+            --verde-ok:    #2d6a4f;
+            --rojo-err:    #7b2d2d;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--negro);
+            color: var(--blanco-humo);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 400;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== FONDO ANIMADO ===== */
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== OVERLAY TEXTURA GRANO ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 180px;
+            opacity: 0.45;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ===== LOADING SKELETON ===== */
+        #page-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--negro);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #page-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loader-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, var(--oro-oscuro), var(--oro), var(--oro-claro), var(--oro));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            animation: loaderFadeIn 0.8s ease forwards;
+        }
+
+        @keyframes loaderFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .loader-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 5px;
+            height: 32px;
+        }
+
+        .loader-bar {
+            width: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to top, var(--oro-oscuro), var(--oro), var(--oro-claro));
+            animation: loaderBar 1.1s ease-in-out infinite alternate;
+        }
+
+        @keyframes loaderBar {
+            from { height: 6px; opacity: 0.4; }
+            to   { height: 28px; opacity: 1; }
+        }
+
+        .loader-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.68rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.5;
+        }
+
+        /* ===== EXPLOSIÓN TNT ===== */
+        .loader-blast {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .loader-blast.fire {
+            opacity: 1;
+        }
+
+        .blast-core {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff8e0 0%, var(--oro-claro) 35%, var(--oro) 60%, transparent 100%);
+            transform: scale(0);
+        }
+
+        .loader-blast.fire .blast-core {
+            animation: blastCore 0.7s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes blastCore {
+            0%   { transform: scale(0); opacity: 1; }
+            40%  { transform: scale(18); opacity: 1; }
+            100% { transform: scale(34); opacity: 0; }
+        }
+
+        .blast-shard {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: var(--oro-claro);
+            border-radius: 50%;
+            box-shadow: 0 0 8px 1px var(--oro);
+            opacity: 0;
+        }
+
+        .loader-blast.fire .blast-shard {
+            animation: shardFly 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+        }
+
+        @keyframes shardFly {
+            0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
+        }
+
+        .loader-flash {
+            position: fixed;
+            inset: 0;
+            background: var(--oro-claro);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .loader-flash.flash-active {
+            animation: flashWhite 0.5s ease-out forwards;
+        }
+
+        @keyframes flashWhite {
+            0%   { opacity: 0; }
+            12%  { opacity: 0.85; }
+            100% { opacity: 0; }
+        }
+
+        /* ===== NAVBAR ===== */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,10,0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--borde);
+            padding: 0 2rem;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, var(--oro-oscuro), var(--oro), var(--oro-claro), var(--oro));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            color: var(--oro);
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            opacity: 0.75;
+        }
+
+        .nav-cta-btn {
+            margin-left: auto;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--oro);
+            text-decoration: none;
+            border: 1px solid var(--borde);
+            padding: 8px 20px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-cta-btn:hover {
+            background: var(--oro);
+            color: var(--negro);
+            border-color: var(--oro);
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 100px 2rem 80px;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro), transparent);
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--oro);
+            margin-bottom: 28px;
+        }
+
+        .hero-eyebrow::before,
+        .hero-eyebrow::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 1px;
+            background: var(--oro);
+            opacity: 0.6;
+        }
+
+        .hero-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 8px;
+            background: linear-gradient(180deg, var(--oro-claro) 0%, var(--oro) 40%, var(--oro-oscuro) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 30px rgba(201,168,76,0.3));
+        }
+
+        .hero-subtitle-small {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 1rem;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.6;
+            margin-bottom: 30px;
+        }
+
+        .hero-desc {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            font-style: italic;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+            max-width: 580px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        /* Visualizador animado */
+        .visualizer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            height: 48px;
+            margin-bottom: 10px;
+        }
+
+        .v-bar {
+            width: 5px;
+            border-radius: 3px 3px 0 0;
+            animation: vibe 1.4s ease-in-out infinite alternate;
+            background: linear-gradient(to top, var(--oro-oscuro), var(--oro), var(--oro-claro));
+        }
+
+        @keyframes vibe {
+            from { height: 4px; opacity: 0.5; }
+            to   { height: 38px; opacity: 1; }
+        }
+
+        /* ===== CÓMO FUNCIONA ===== */
+        .how-section {
+            position: relative;
+            z-index: 2;
+            max-width: 1000px;
+            margin: 0 auto 70px;
+            padding: 0 1.5rem;
+        }
+
+        .how-title {
+            font-family: 'Cinzel', serif;
+            font-size: 0.78rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--oro);
+            text-align: center;
+            margin-bottom: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .how-title::before,
+        .how-title::after {
+            content: '';
+            display: block;
+            width: 70px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro));
+        }
+
+        .how-title::after { background: linear-gradient(90deg, var(--oro), transparent); }
+
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            position: relative;
+        }
+
+        .how-step {
+            text-align: center;
+            padding: 0 18px;
+            position: relative;
+        }
+
+        .how-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 32px;
+            right: -2px;
+            width: calc(100% - 64px);
+            height: 1px;
+            background: linear-gradient(90deg, var(--oro-oscuro), transparent);
+            opacity: 0.4;
+        }
+
+        .how-num {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 18px;
+            border: 1px solid var(--borde);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--oro);
+            background: linear-gradient(160deg, rgba(25,20,10,0.9), rgba(14,14,14,0.95));
+            position: relative;
+            z-index: 1;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .how-step:hover .how-num {
+            border-color: var(--oro);
+            transform: translateY(-4px);
+        }
+
+        .how-step-title {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--oro-palido);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .how-step-desc {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.92rem;
+            color: var(--blanco-humo);
+            opacity: 0.6;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .how-grid {
+                grid-template-columns: 1fr;
+                gap: 36px;
+            }
+            .how-step:not(:last-child)::after { display: none; }
+        }
+
+        /* ===== CTA BOTONES HERO ===== */
+        .hero-cta-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 36px;
+            flex-wrap: wrap;
+        }
+
+        .hero-cta-btn {
+            font-family: 'Cinzel', serif;
+            font-size: 0.74rem;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .hero-cta-btn.primary {
+            background: linear-gradient(135deg, var(--oro-oscuro), var(--oro), var(--oro-claro));
+            color: var(--negro);
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(201,168,76,0.25);
+        }
+
+        .hero-cta-btn.primary:hover {
+            box-shadow: 0 10px 32px rgba(201,168,76,0.4);
+            transform: translateY(-2px);
+        }
+
+        .hero-cta-btn.secondary {
+            background: transparent;
+            color: var(--oro);
+            border: 1px solid var(--borde);
+        }
+
+        .hero-cta-btn.secondary:hover {
+            border-color: var(--oro);
+            background: rgba(201,168,76,0.06);
+        }
+
+        /* Offset de anclas para que el nav fijo no tape el título de sección */
+        section[id], .form-wrapper[id] {
+            scroll-margin-top: 90px;
+        }
+
+        /* ===== WHATSAPP FLOTANTE ===== */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 28px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--oro-oscuro), var(--oro));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            z-index: 300;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: whatsappPulse 2.5s ease-in-out infinite;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--oro);
+        }
+
+        .whatsapp-float svg {
+            width: 26px;
+            height: 26px;
+            fill: var(--negro);
+        }
+
+        @keyframes whatsappPulse {
+            0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.3); }
+            50% { box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 8px rgba(201,168,76,0.08); }
+        }
+
+        @media (max-width: 640px) {
+            .whatsapp-float {
+                width: 50px;
+                height: 50px;
+                bottom: 20px;
+                right: 16px;
+            }
+            .whatsapp-float svg {
+                width: 23px;
+                height: 23px;
+            }
+        }
+
+        /* ===== FAQ ===== */
+        .faq-section {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto 80px;
+            padding: 0 1.5rem;
+        }
+
+        .faq-item {
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            background: linear-gradient(160deg, rgba(25,20,10,0.6) 0%, rgba(14,14,14,0.75) 100%);
+            transition: border-color 0.3s ease;
+        }
+
+        .faq-item:hover { border-color: var(--borde-hover); }
+
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 20px 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Cinzel', serif;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--oro-palido);
+            letter-spacing: 0.5px;
+            gap: 16px;
+        }
+
+        .faq-icon {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            color: var(--oro);
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            line-height: 1;
+        }
+
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+
+        .faq-answer-inner {
+            padding: 0 26px 22px;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 0.96rem;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+
+        /* ===== ORNAMENTO ===== */
+        .ornament {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin: 0 auto 50px;
+        }
+
+        .ornament-line {
+            width: 80px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro));
+        }
+
+        .ornament-line.right { background: linear-gradient(90deg, var(--oro), transparent); }
+
+        .ornament-diamond {
+            width: 8px;
+            height: 8px;
+            background: var(--oro);
+            transform: rotate(45deg);
+        }
+
+        /* ===== TESTIMONIOS ===== */
+        .testimonios-section {
+            position: relative;
+            z-index: 2;
+            max-width: 1100px;
+            margin: 0 auto 80px;
+            padding: 0 1.5rem;
+        }
+
+        .section-heading {
+            font-family: 'Cinzel', serif;
+            font-size: 0.78rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--oro);
+            text-align: center;
+            margin-bottom: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .section-heading::before,
+        .section-heading::after {
+            content: '';
+            display: block;
+            width: 70px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--oro));
+        }
+
+        .section-heading::after { background: linear-gradient(90deg, var(--oro), transparent); }
+
+        .testimonios-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .testimonio-card {
+            background: linear-gradient(160deg, rgba(25,20,10,0.85) 0%, rgba(14,14,14,0.92) 100%);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            padding: 32px 28px;
+            position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .testimonio-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--borde-hover);
+        }
+
+        .testimonio-quote-mark {
+            font-family: 'Playfair Display', 'Cinzel', serif;
+            font-size: 3rem;
+            color: var(--oro);
+            opacity: 0.3;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .testimonio-texto {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1.02rem;
+            color: var(--blanco-humo);
+            opacity: 0.85;
+            line-height: 1.65;
+            margin-bottom: 22px;
+        }
+
+        .testimonio-autor {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid var(--borde);
+            padding-top: 16px;
+        }
+
+        .testimonio-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--negro);
+            border: 1px solid var(--borde);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            padding: 6px;
+        }
+
+        .testimonio-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .testimonio-nombre {
+            font-family: 'Cinzel', serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--oro-palido);
+            letter-spacing: 0.5px;
+        }
+
+        .testimonio-banda {
+            font-size: 0.76rem;
+            color: var(--blanco-humo);
+            opacity: 0.5;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 900px) {
+            .testimonios-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ===== PORTAFOLIO ===== */
+        .portafolio-section {
+            position: relative;
+            z-index: 2;
+            max-width: 1100px;
+            margin: 0 auto 80px;
+            padding: 0 1.5rem;
+        }
+
+        .portafolio-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .portafolio-card {
+            background: linear-gradient(160deg, rgba(25,20,10,0.85) 0%, rgba(14,14,14,0.92) 100%);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .portafolio-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--borde-hover);
+        }
+
+        .portafolio-video {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;
+            background: #000;
+            border-bottom: 1px solid var(--borde);
+        }
+
+        .portafolio-video iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .portafolio-info {
+            padding: 18px 20px;
+        }
+
+        .portafolio-tag {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.68rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.8;
+            margin-bottom: 6px;
+        }
+
+        .portafolio-titulo {
+            font-family: 'Cinzel', serif;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--oro-palido);
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 900px) {
+            .portafolio-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ===== TIEMPOS Y PRECIOS ===== */
+        .info-section {
+            position: relative;
+            z-index: 2;
+            max-width: 1000px;
+            margin: 0 auto 80px;
+            padding: 0 1.5rem;
+        }
+
+        .pricing-table {
+            background: linear-gradient(160deg, rgba(25,20,10,0.85) 0%, rgba(14,14,14,0.92) 100%);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .pricing-row {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr 1fr;
+            align-items: center;
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--borde);
+            transition: background 0.25s ease;
+        }
+
+        .pricing-row:last-child { border-bottom: none; }
+
+        .pricing-row:hover { background: rgba(201,168,76,0.05); }
+
+        .pricing-row.header-row {
+            background: rgba(201,168,76,0.06);
+            padding: 16px 28px;
+        }
+
+        .pricing-row.header-row span {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.66rem;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.85;
+            font-weight: 600;
+        }
+
+        .pricing-servicio {
+            font-family: 'Cinzel', serif;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--oro-palido);
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-tiempo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.86rem;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pricing-precio {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            color: var(--oro);
+            font-weight: 600;
+        }
+
+        .pricing-precio .precio-usd {
+            display: block;
+            font-size: 0.74rem;
+            color: var(--blanco-humo);
+            opacity: 0.45;
+            font-style: italic;
+            margin-top: 1px;
+        }
+
+        .pricing-note {
+            text-align: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 0.85rem;
+            color: var(--blanco-humo);
+            opacity: 0.45;
+            margin-top: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 640px) {
+            .pricing-row { grid-template-columns: 1.4fr 1fr 0.9fr; padding: 16px 16px; gap: 6px; }
+            .pricing-servicio { font-size: 0.78rem; }
+            .pricing-tiempo { font-size: 0.75rem; }
+            .pricing-precio { font-size: 0.85rem; }
+        }
+
+        /* ===== OCULTAR BADGE RECAPTCHA (aviso legal va en footer) ===== */
+        .grecaptcha-badge {
+            visibility: hidden;
+        }
+
+        /* ===== BARRA DE PROGRESO FORM ===== */
+        .progress-wrapper {
+            margin-bottom: 36px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 14.28%;
+            background: linear-gradient(90deg, var(--oro-oscuro), var(--oro), var(--oro-claro));
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.66rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--oro);
+            opacity: 0.65;
+        }
+
+        .progress-label span:last-child {
+            color: var(--blanco-humo);
+            opacity: 0.4;
+        }
+
+        /* ===== VALIDACIÓN VISUAL ===== */
+        .field-group {
+            position: relative;
+        }
+
+        .field-check {
+            position: absolute;
+            right: 16px;
+            top: 38px;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+        }
+
+        .field-check.show-valid {
+            opacity: 1;
+            color: var(--verde-confirmacion);
+        }
+
+        .field-check.show-invalid {
+            opacity: 1;
+            color: var(--rojo-error);
+        }
+
+        input.campo-valido,
+        select.campo-valido,
+        textarea.campo-valido {
+            border-color: rgba(63,111,79,0.5) !important;
+        }
+
+        input.campo-invalido,
+        textarea.campo-invalido {
+            border-color: rgba(123,45,45,0.5) !important;
+        }
+
+        /* ===== PANTALLA DE CONFIRMACIÓN ===== */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5,5,5,0.92);
+            backdrop-filter: blur(6px);
+            z-index: 600;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .confirm-overlay.active {
+            display: flex;
+            animation: fadeUp 0.4s ease;
+        }
+
+        .confirm-card {
+            background: linear-gradient(160deg, rgba(25,20,10,0.97) 0%, rgba(10,10,10,0.99) 100%);
+            border: 1px solid var(--oro);
+            border-radius: 4px;
+            padding: 56px 48px;
+            max-width: 460px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 30px 90px rgba(0,0,0,0.7), 0 0 40px rgba(201,168,76,0.15);
+        }
+
+        .confirm-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            border: 2px solid var(--oro);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--oro);
+            animation: confirmPulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes confirmPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+            50% { box-shadow: 0 0 0 12px rgba(201,168,76,0); }
+        }
+
+        .confirm-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--oro-palido);
+            margin-bottom: 14px;
+        }
+
+        .confirm-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1rem;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .confirm-steps {
+            display: flex;
+            justify-content: center;
+            gap: 22px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .confirm-step {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.68rem;
+            letter-spacing: 1px;
+            color: var(--oro);
+            opacity: 0.6;
+            text-align: center;
+        }
+
+        .confirm-step-num {
+            display: block;
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            color: var(--oro);
+            margin-bottom: 4px;
+        }
+
+        .confirm-close {
+            background: transparent;
+            border: 1px solid var(--borde-suave);
+            color: var(--oro);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 12px 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-close:hover {
+            background: var(--madera-media, var(--oro));
+            color: var(--negro);
+            border-color: var(--oro);
+        }
+
+        .recaptcha-note {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.68rem;
+            color: var(--blanco-humo);
+            opacity: 0.3;
+            text-align: center;
+            margin-top: 14px;
+            line-height: 1.5;
+        }
+
+        .recaptcha-note a {
+            color: var(--oro);
+            opacity: 0.7;
+            text-decoration: none;
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 1.5rem 80px;
+        }
+
+        .form-card {
+            background: linear-gradient(160deg, rgba(25,20,10,0.95) 0%, rgba(14,14,14,0.98) 100%);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            padding: 52px 48px;
+            position: relative;
+            box-shadow:
+                0 0 0 1px rgba(201,168,76,0.08),
+                0 30px 80px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(201,168,76,0.1);
+        }
+
+        /* Esquinas decorativas */
+        .form-card::before,
+        .form-card::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: var(--oro);
+            border-style: solid;
+            opacity: 0.7;
+        }
+
+        .form-card::before {
+            top: -1px; left: -1px;
+            border-width: 2px 0 0 2px;
+        }
+
+        .form-card::after {
+            bottom: -1px; right: -1px;
+            border-width: 0 2px 2px 0;
+        }
+
+        .corner-tr, .corner-bl {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: var(--oro);
+            border-style: solid;
+            opacity: 0.7;
+        }
+
+        .corner-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+        .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+
+        .form-card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            letter-spacing: 5px;
+            color: var(--oro);
+            text-align: center;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .form-card-sub {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            text-align: center;
+            color: var(--blanco-humo);
+            opacity: 0.5;
+            font-size: 0.95rem;
+            margin-bottom: 42px;
+        }
+
+        /* ===== FORM FIELDS ===== */
+        .field-group {
+            margin-bottom: 26px;
+        }
+
+        label {
+            display: block;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--oro);
+            margin-bottom: 10px;
+        }
+
+        label span {
+            color: var(--oro-oscuro);
+            margin-right: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--borde);
+            color: var(--blanco-humo);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 400;
+            padding: 14px 18px;
+            outline: none;
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+            border-radius: 2px;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--oro);
+            background: rgba(201,168,76,0.05);
+            box-shadow: 0 0 0 1px rgba(201,168,76,0.2), 0 4px 24px rgba(201,168,76,0.08);
+            color: var(--oro-palido);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(232,223,200,0.25);
+            font-weight: 300;
+        }
+
+        select option {
+            background: #1a1500;
+            color: var(--blanco-humo);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 110px;
+            line-height: 1.6;
+        }
+
+        /* SELECT personalizado con flecha */
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: '◆';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--oro);
+            font-size: 0.55rem;
+            pointer-events: none;
+        }
+
+        /* ===== PHONE ROW ===== */
+        .phone-row {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 10px;
+        }
+
+        /* ===== FILE UPLOAD ===== */
+        .file-upload-area {
+            border: 1px dashed var(--borde);
+            border-radius: 2px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            background: rgba(255,255,255,0.02);
+            position: relative;
+        }
+
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: var(--oro);
+            background: rgba(201,168,76,0.04);
+        }
+
+        .file-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--oro);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .upload-label-main {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            color: var(--blanco-humo);
+            opacity: 0.7;
+        }
+
+        .upload-label-main strong {
+            color: var(--oro);
+            font-weight: 600;
+        }
+
+        .upload-note {
+            font-size: 0.72rem;
+            color: var(--blanco-humo);
+            opacity: 0.35;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        #filename-display {
+            margin-top: 10px;
+            font-size: 0.82rem;
+            color: var(--oro);
+            font-weight: 500;
+            letter-spacing: 1px;
+            min-height: 18px;
+        }
+
+        /* ===== DIVIDER ===== */
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 34px 0 28px;
+        }
+
+        .form-divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--borde), transparent);
+        }
+
+        .form-divider-diamond {
+            width: 6px;
+            height: 6px;
+            background: var(--oro-oscuro);
+            transform: rotate(45deg);
+            flex-shrink: 0;
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .btn-submit {
+            width: 100%;
+            margin-top: 36px;
+            padding: 18px 30px;
+            background: linear-gradient(135deg, var(--oro-oscuro) 0%, var(--oro) 50%, var(--oro-oscuro) 100%);
+            background-size: 200% 100%;
+            border: none;
+            color: var(--negro);
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-position 0.4s, box-shadow 0.3s, transform 0.2s;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border: 1px solid rgba(255,255,255,0.15);
+            pointer-events: none;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background-position: 100% 0;
+            box-shadow: 0 8px 32px rgba(201,168,76,0.35), 0 0 0 1px var(--oro);
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ===== MENSAJE ===== */
+        .msg-box {
+            display: none;
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 2px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-align: center;
+            animation: fadeUp 0.35s ease;
+        }
+
+        .msg-box.ok {
+            display: block;
+            background: rgba(45,106,79,0.15);
+            border: 1px solid rgba(45,106,79,0.4);
+            color: #5ec99a;
+        }
+
+        .msg-box.err {
+            display: block;
+            background: rgba(123,45,45,0.15);
+            border: 1px solid rgba(123,45,45,0.4);
+            color: #e07070;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 36px 2rem;
+            border-top: 1px solid var(--borde);
+            background: rgba(0,0,0,0.5);
+        }
+
+        .footer-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            letter-spacing: 6px;
+            color: var(--oro);
+            opacity: 0.6;
+            margin-bottom: 8px;
+        }
+
+        .footer-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 0.85rem;
+            color: var(--blanco-humo);
+            opacity: 0.3;
+            letter-spacing: 2px;
+        }
+
+        /* ===== BARRA INFERIOR ===== */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--negro), var(--oro-oscuro), var(--oro), var(--oro-claro), var(--oro), var(--oro-oscuro), var(--negro));
+            z-index: 200;
+        }
+
+        /* ===== LOADING OVERLAY ===== */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-ring {
+            width: 56px;
+            height: 56px;
+            border: 3px solid rgba(201,168,76,0.2);
+            border-top-color: var(--oro);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            letter-spacing: 4px;
+            color: var(--oro);
+            opacity: 0.8;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .form-card { padding: 36px 24px; }
+            .phone-row { grid-template-columns: 140px 1fr; }
+            .hero { padding: 70px 1.5rem 60px; }
+            .nav-tagline { display: none; }
+        }
+    </style>
+    <script src="https://www.google.com/recaptcha/api.js?render=6LchqSwtAAAAAKtXOcjn-ZB80Trx2naPY0kBlQme"></script>
+</head>
+<body>
+
+    <!-- LOADER INICIAL -->
+    <div id="page-loader">
+        <div class="loader-logo" id="loaderLogoText">TNTone</div>
+        <div class="loader-bars" id="loaderBars">
+            <div class="loader-bar" style="animation-delay:0s"></div>
+            <div class="loader-bar" style="animation-delay:0.15s"></div>
+            <div class="loader-bar" style="animation-delay:0.3s"></div>
+            <div class="loader-bar" style="animation-delay:0.45s"></div>
+            <div class="loader-bar" style="animation-delay:0.2s"></div>
+        </div>
+        <div class="loader-label" id="loaderLabel">Cargando estudio</div>
+        <div class="loader-blast" id="loaderBlast">
+            <div class="blast-core"></div>
+        </div>
+    </div>
+    <div class="loader-flash" id="loaderFlash"></div>
+
+
+
+    <!-- Fondo canvas animado -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Overlay de carga -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-ring"></div>
+        <div class="loading-text">PROCESANDO DEMO</div>
+    </div>
+
+    <!-- NAV -->
+    <nav>
+        <a class="nav-logo" href="#">TNTone</a>
+        <a href="#formulario" class="nav-cta-btn">Subir Demo</a>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <div class="hero-eyebrow">Recepción de demos</div>
+        <h1 class="hero-title">TNTone</h1>
+        <p class="hero-subtitle-small">Sound Engineering</p>
+
+        <p class="hero-desc">
+            Entrega tu demo, confía en el proceso.<br>
+            Masterización · Mezcla · Arreglos · Revisión técnica.
+        </p>
+
+        <div class="visualizer">
+            <div class="v-bar" style="animation-delay:0.0s"></div>
+            <div class="v-bar" style="animation-delay:0.15s"></div>
+            <div class="v-bar" style="animation-delay:0.05s"></div>
+            <div class="v-bar" style="animation-delay:0.25s"></div>
+            <div class="v-bar" style="animation-delay:0.1s"></div>
+            <div class="v-bar" style="animation-delay:0.35s"></div>
+            <div class="v-bar" style="animation-delay:0.2s"></div>
+            <div class="v-bar" style="animation-delay:0.4s"></div>
+            <div class="v-bar" style="animation-delay:0.3s"></div>
+            <div class="v-bar" style="animation-delay:0.45s"></div>
+            <div class="v-bar" style="animation-delay:0.22s"></div>
+            <div class="v-bar" style="animation-delay:0.08s"></div>
+        </div>
+
+        <div class="hero-cta-row">
+            <a href="#formulario" class="hero-cta-btn primary">Sube tu Demo →</a>
+            <a href="#como-funciona" class="hero-cta-btn secondary">Cómo Funciona</a>
+        </div>
+    </header>
+
+    <!-- ORNAMENTO -->
+    <div class="ornament">
+        <div class="ornament-line"></div>
+        <div class="ornament-diamond"></div>
+        <div class="ornament-diamond" style="background:var(--oro-claro);transform:rotate(45deg) scale(0.65)"></div>
+        <div class="ornament-diamond"></div>
+        <div class="ornament-line right"></div>
+    </div>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="how-section" id="como-funciona">
+        <h2 class="how-title">Cómo Funciona</h2>
+        <div class="how-grid">
+            <div class="how-step">
+                <div class="how-num">1</div>
+                <div class="how-step-title">Sube tu Demo</div>
+                <p class="how-step-desc">Completa el formulario y adjunta tu archivo de audio en cualquier formato.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">2</div>
+                <div class="how-step-title">Lo Escuchamos</div>
+                <p class="how-step-desc">Analizamos tu proyecto con atención técnica y artística.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">3</div>
+                <div class="how-step-title">Te Contactamos</div>
+                <p class="how-step-desc">Te avisamos por WhatsApp si tu proyecto fue aprobado.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">4</div>
+                <div class="how-step-title">Empezamos</div>
+                <p class="how-step-desc">Confirmas el pago y arrancamos a darle vida a tu sonido.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PORTAFOLIO -->
+    <section class="portafolio-section">
+        <h2 class="section-heading">Trabajos Anteriores</h2>
+        <div class="portafolio-grid">
+            <div class="portafolio-card">
+                <div class="portafolio-video">
+                    <iframe src="https://www.youtube.com/embed/lIZjEh2-Drc" title="Proyecto TNTone 1" allowfullscreen loading="lazy"></iframe>
+                </div>
+                <div class="portafolio-info">
+                    <div class="portafolio-tag">Masterización</div>
+                    <div class="portafolio-titulo">Proyecto Independiente</div>
+                </div>
+            </div>
+
+            <div class="portafolio-card">
+                <div class="portafolio-video">
+                    <iframe src="https://www.youtube.com/embed/ctwn8s0Otbo" title="Proyecto TNTone 2" allowfullscreen loading="lazy"></iframe>
+                </div>
+                <div class="portafolio-info">
+                    <div class="portafolio-tag">Mezcla</div>
+                    <div class="portafolio-titulo">Proyecto Independiente</div>
+                </div>
+            </div>
+
+            <div class="portafolio-card">
+                <div class="portafolio-video">
+                    <iframe src="https://www.youtube.com/embed/sbMWc0J30SQ" title="Proyecto TNTone 3" allowfullscreen loading="lazy"></iframe>
+                </div>
+                <div class="portafolio-info">
+                    <div class="portafolio-tag">Mezcla y Masterización</div>
+                    <div class="portafolio-titulo">Proyecto Independiente</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIOS -->
+    <section class="testimonios-section">
+        <h2 class="section-heading">Lo Que Dicen</h2>
+        <div class="testimonios-grid">
+            <div class="testimonio-card">
+                <div class="testimonio-quote-mark">"</div>
+                <p class="testimonio-texto">
+                    Cuando estamos armando un riff o una progresión, necesitamos que el detalle técnico no se pierda en la mezcla. TNTone entendió exactamente dónde tenía que respirar la guitarra y dónde la voz tenía que pegar fuerte.
+                </p>
+                <div class="testimonio-autor">
+                    <div class="testimonio-avatar"><img src="logo_a7x.jpg" alt="Avenged Sevenfold"></div>
+                    <div>
+                        <div class="testimonio-nombre">Synyster Gates & M. Shadows</div>
+                        <div class="testimonio-banda">Avenged Sevenfold</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonio-card">
+                <div class="testimonio-quote-mark">"</div>
+                <p class="testimonio-texto">
+                    Producimos nuestros propios beats y sabemos exactamente qué sonido buscamos. TNTone respetó nuestra visión y le dio la pegada que necesitábamos sin cambiar la esencia del track.
+                </p>
+                <div class="testimonio-autor">
+                    <div class="testimonio-avatar"><img src="logo_sk.jpg" alt="Stray Kids"></div>
+                    <div>
+                        <div class="testimonio-nombre">Bang Chan, Changbin & Han</div>
+                        <div class="testimonio-banda">Stray Kids</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonio-card">
+                <div class="testimonio-quote-mark">"</div>
+                <p class="testimonio-texto">
+                    Trabajar en equipo significa que cada detalle pasa por muchas manos antes de llegar a la mezcla final. TNTone supo integrarse en ese proceso colaborativo y entregar exactamente el balance que el equipo de producción pedía.
+                </p>
+                <div class="testimonio-autor">
+                    <div class="testimonio-avatar"><img src="logo_bts.jpg" alt="BTS"></div>
+                    <div>
+                        <div class="testimonio-nombre">BTS</div>
+                        <div class="testimonio-banda">Equipo completo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TIEMPOS Y PRECIOS -->
+
+    <section class="info-section">
+        <h2 class="section-heading">Tiempos y Tarifas</h2>
+        <div class="pricing-table">
+            <div class="pricing-row header-row">
+                <span>Servicio</span>
+                <span>Entrega</span>
+                <span>Tarifa</span>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Revisión de Demo</div>
+                <div class="pricing-tiempo">2 meses</div>
+                <div class="pricing-precio">Bs 150<span class="precio-usd">≈ $22 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Mezcla</div>
+                <div class="pricing-tiempo">3 meses</div>
+                <div class="pricing-precio">Bs 400<span class="precio-usd">≈ $58 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Masterización</div>
+                <div class="pricing-tiempo">2.5 meses</div>
+                <div class="pricing-precio">Bs 350<span class="precio-usd">≈ $51 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Mezcla y Masterización</div>
+                <div class="pricing-tiempo">4 meses</div>
+                <div class="pricing-precio">Bs 650<span class="precio-usd">≈ $94 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Arreglos</div>
+                <div class="pricing-tiempo">3.5 meses</div>
+                <div class="pricing-precio">Bs 500<span class="precio-usd">≈ $72 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Producción</div>
+                <div class="pricing-tiempo">5 meses</div>
+                <div class="pricing-precio">Bs 900<span class="precio-usd">≈ $130 USD</span></div>
+            </div>
+            <div class="pricing-row">
+                <div class="pricing-servicio">Comentarios de Producción</div>
+                <div class="pricing-tiempo">2 meses</div>
+                <div class="pricing-precio">Bs 180<span class="precio-usd">≈ $26 USD</span></div>
+            </div>
+        </div>
+        <p class="pricing-note">Tarifas y tiempos referenciales. El presupuesto final se confirma tras revisar tu demo.</p>
+    </section>
+
+    <!-- FORMULARIO -->
+    <div class="form-wrapper" id="formulario">
+        <div class="form-card">
+            <div class="corner-tr"></div>
+            <div class="corner-bl"></div>
+
+            <h2 class="form-card-title">Portal de Carga</h2>
+            <p class="form-card-sub">Completa cada campo con precisión. Tu arte merece atención.</p>
+
+            <div class="progress-wrapper">
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-label">
+                    <span id="progressStepText">Paso 1 de 7</span>
+                    <span id="progressPercentText">14%</span>
+                </div>
+            </div>
+
+            <form id="mainForm">
+                <!-- 1. Artista -->
+                <div class="field-group" data-field="artista">
+                    <label><span>01</span>Nombre de Banda / Artista</label>
+                    <input type="text" id="artista" name="artista" placeholder="Ej: Slipknot, Corey Taylor, Stone Sour" required>
+                    <span class="field-check">✓</span>
+                </div>
+
+                <!-- 2. Demo -->
+                <div class="field-group" data-field="demo">
+                    <label><span>02</span>Nombre de la Demo</label>
+                    <input type="text" id="demo" name="demo" placeholder="Ej: Duality - Demo v2, Wait and Bleed" required>
+                    <span class="field-check">✓</span>
+                </div>
+
+                <!-- 3. Servicio -->
+                <div class="field-group" data-field="servicio">
+                    <label><span>03</span>Tipo de Servicio</label>
+                    <div class="select-wrapper">
+                        <select id="servicio" name="servicio" required>
+                            <option value="" disabled selected>Selecciona un servicio</option>
+                            <option value="Masterización">Masterización</option>
+                            <option value="Mezcla">Mezcla</option>
+                            <option value="Mezcla y Masterización">Mezcla y Masterización</option>
+                            <option value="Arreglos">Arreglos</option>
+                            <option value="Revisión de Demo">Revisión de Demo</option>
+                            <option value="Producción">Producción</option>
+                            <option value="Comentarios de Producción">Comentarios de Producción</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. Archivo -->
+                <div class="field-group" data-field="archivoAudio">
+                    <label><span>04</span>Archivo de Audio</label>
+                    <div class="file-upload-area" id="dropZone">
+                        <input type="file" id="archivoAudio" name="archivoAudio" accept="*/*" required>
+                        <span class="upload-icon">♪</span>
+                        <p class="upload-label-main"><strong>Haz clic</strong> o arrastra tu archivo aquí</p>
+                        <p class="upload-note">Cualquier formato aceptado · WAV / MP3 / FLAC / AIFF recomendados</p>
+                        <div id="filename-display"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Búsqueda / Notas -->
+                <div class="field-group" data-field="busca">
+                    <label><span>05</span>¿Qué buscas con este servicio?</label>
+                    <textarea id="busca" name="busca" placeholder="Ej: sonido agresivo, batería al frente, graves potentes, estilo Iowa o All Hope Is Gone..." required></textarea>
+                </div>
+
+                <div class="form-divider">
+                    <div class="form-divider-line"></div>
+                    <div class="form-divider-diamond"></div>
+                    <div class="form-divider-line"></div>
+                </div>
+
+                <!-- 6. Email -->
+                <div class="field-group" data-field="email">
+                    <label><span>06</span>Correo Electrónico</label>
+                    <input type="email" id="email" name="email" placeholder="tu@correo.com" required>
+                    <span class="field-check">✓</span>
+                </div>
+
+                <!-- 7. Teléfono -->
+                <div class="field-group" data-field="telefono">
+                    <label><span>07</span>Número de Contacto (WhatsApp)</label>
+                    <div class="phone-row">
+                        <div class="select-wrapper">
+                            <select id="codigoPais" name="codigoPais" required>
+                                <option value="" disabled selected>Código</option>
+                                <option value="+591">🇧🇴 +591 Bolivia</option>
+                                <option value="+54">🇦🇷 +54 Argentina</option>
+                                <option value="+56">🇨🇱 +56 Chile</option>
+                                <option value="+57">🇨🇴 +57 Colombia</option>
+                                <option value="+593">🇪🇨 +593 Ecuador</option>
+                                <option value="+51">🇵🇪 +51 Perú</option>
+                                <option value="+595">🇵🇾 +595 Paraguay</option>
+                                <option value="+598">🇺🇾 +598 Uruguay</option>
+                                <option value="+58">🇻🇪 +58 Venezuela</option>
+                                <option value="+52">🇲🇽 +52 México</option>
+                                <option value="+1">🇺🇸 +1 EEUU/Canadá</option>
+                                <option value="+34">🇪🇸 +34 España</option>
+                                <option value="+55">🇧🇷 +55 Brasil</option>
+                                <option value="+507">🇵🇦 +507 Panamá</option>
+                                <option value="+506">🇨🇷 +506 Costa Rica</option>
+                                <option value="+502">🇬🇹 +502 Guatemala</option>
+                                <option value="+503">🇸🇻 +503 El Salvador</option>
+                                <option value="+504">🇭🇳 +504 Honduras</option>
+                                <option value="+505">🇳🇮 +505 Nicaragua</option>
+                                <option value="+53">🇨🇺 +53 Cuba</option>
+                                <option value="+1-809">🇩🇴 +1-809 R. Dominicana</option>
+                            </select>
+                        </div>
+                        <input type="tel" id="telefono" name="telefono" placeholder="Número sin código de país" required>
+                    </div>
+                </div>
+
+                <!-- SUBMIT -->
+                <button type="submit" class="btn-submit" id="btnEnviar">
+                    Enviar Demo
+                </button>
+
+                <div class="msg-box" id="msgBox"></div>
+
+                <p class="recaptcha-note">
+                    Este sitio está protegido por reCAPTCHA y se aplican la
+                    <a href="https://policies.google.com/privacy" target="_blank">Política de Privacidad</a> y los
+                    <a href="https://policies.google.com/terms" target="_blank">Términos de Servicio</a> de Google.
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE CONFIRMACIÓN -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-card">
+            <div class="confirm-icon">✓</div>
+            <h3 class="confirm-title">Demo Recibida</h3>
+            <p class="confirm-text">Tu proyecto ya está en nuestras manos. Lo escucharemos con atención y te contactaremos por WhatsApp con la decisión.</p>
+            <div class="confirm-steps">
+                <div class="confirm-step"><span class="confirm-step-num">✓</span>Enviado</div>
+                <div class="confirm-step"><span class="confirm-step-num">2</span>Revisión</div>
+                <div class="confirm-step"><span class="confirm-step-num">3</span>WhatsApp</div>
+            </div>
+            <button class="confirm-close" id="confirmCloseBtn">Entendido</button>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <section class="faq-section">
+        <h2 class="section-heading">Preguntas Frecuentes</h2>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                <span>¿Qué formatos de audio aceptan?</span>
+                <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+                <p class="faq-answer-inner">Aceptamos cualquier formato de archivo. Aunque WAV, FLAC y AIFF dan mejores resultados por su mayor calidad, también trabajamos perfectamente con MP3 u otros formatos comprimidos.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                <span>¿Cuánto tarda la revisión inicial de mi demo?</span>
+                <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+                <p class="faq-answer-inner">Escuchamos cada demo en orden de llegada y te contactamos por WhatsApp en cuanto tomamos una decisión. El tiempo varía según la cantidad de proyectos en cola, pero siempre recibirás una respuesta.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                <span>¿Puedo pedir cambios después de la entrega?</span>
+                <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+                <p class="faq-answer-inner">Sí. Una vez entregado el proyecto final, tienes una ronda de ajustes incluida para pulir cualquier detalle. Cambios mayores fuera de esa ronda se cotizan por separado.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                <span>¿Cómo es el proceso de pago?</span>
+                <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+                <p class="faq-answer-inner">Si tu proyecto es aprobado, te pedimos el 50% por adelantado mediante QR para comenzar a trabajar. El saldo restante se cancela al momento de la entrega final.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                <span>¿Qué pasa si mi demo no es aprobada?</span>
+                <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+                <p class="faq-answer-inner">Te avisamos igualmente por WhatsApp con honestidad. No significa que tu trabajo no tenga valor, simplemente que en ese momento no contamos con la disponibilidad. Quedamos atentos a futuras oportunidades.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHATSAPP FLOTANTE -->
+    <a href="https://wa.me/59170514745" target="_blank" class="whatsapp-float" aria-label="Contactar por WhatsApp">
+        <svg viewBox="0 0 24 24"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.04 3.5c-4.9 0-8.89 3.99-8.89 8.89 0 1.57.41 3.04 1.13 4.32L3.5 20.5l3.93-1.03a8.86 8.86 0 0 0 4.6 1.26h.01c4.9 0 8.89-3.99 8.89-8.89 0-2.38-.93-4.61-2.33-5.52zm-5.56 13.68h-.01a7.38 7.38 0 0 1-3.76-1.03l-.27-.16-2.79.73.75-2.72-.18-.28a7.39 7.39 0 0 1-1.13-3.95c0-4.08 3.32-7.4 7.4-7.4 1.98 0 3.83.77 5.23 2.17a7.34 7.34 0 0 1 2.17 5.24c0 4.08-3.32 7.4-7.41 7.4zm4.05-5.54c-.22-.11-1.31-.65-1.51-.72-.2-.07-.35-.11-.5.11-.15.22-.57.72-.7.87-.13.15-.26.16-.48.05-.22-.11-.93-.34-1.77-1.09-.65-.58-1.09-1.3-1.22-1.52-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.07-.11-.62-1.49-.85-2.03-.22-.53-.45-.46-.62-.47-.15-.01-.33-.01-.5-.01-.18 0-.46.07-.7.32-.24.26-.93.91-.93 2.21 0 1.3.95 2.56 1.08 2.74.13.18 1.79 2.73 4.33 3.72 2.55.99 2.55.66 3.01.62.46-.04 1.31-.53 1.5-1.04.18-.51.18-.95.13-1.04-.05-.1-.21-.15-.43-.27z"/></svg>
+    </a>
+
+    <!-- FOOTER -->
+    <footer>
+        <p class="footer-logo">TNTone</p>
+        <p class="footer-text">© 2026 · Ingeniería de Sonido · Todos los derechos reservados</p>
+    </footer>
+
+    <div class="bottom-bar"></div>
+
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+    // ——————————————————
+    // LOADER + EXPLOSIÓN TNT
+    // ——————————————————
+    window.addEventListener('load', () => {
+        const loader     = document.getElementById('page-loader');
+        const blast      = document.getElementById('loaderBlast');
+        const flash      = document.getElementById('loaderFlash');
+        const logoText   = document.getElementById('loaderLogoText');
+        const bars       = document.getElementById('loaderBars');
+        const label      = document.getElementById('loaderLabel');
+
+        // Generar chispas de la explosión dinámicamente
+        const shardCount = 18;
+        for (let i = 0; i < shardCount; i++) {
+            const shard = document.createElement('div');
+            shard.className = 'blast-shard';
+            const angle = (Math.PI * 2 * i) / shardCount + (Math.random() * 0.3);
+            const dist  = 120 + Math.random() * 140;
+            const tx = Math.cos(angle) * dist;
+            const ty = Math.sin(angle) * dist;
+            shard.style.setProperty('--tx', tx + 'px');
+            shard.style.setProperty('--ty', ty + 'px');
+            shard.style.animationDelay = (Math.random() * 0.08) + 's';
+            blast.appendChild(shard);
+        }
+
+        // Tiempo total alargado para que se note la animación completa
+        setTimeout(() => {
+            // Ocultar logo y barras justo antes de la detonación
+            logoText.style.transition = 'opacity 0.15s';
+            bars.style.transition = 'opacity 0.15s';
+            label.style.transition = 'opacity 0.15s';
+            logoText.style.opacity = '0';
+            bars.style.opacity = '0';
+            label.style.opacity = '0';
+
+            // Detonar
+            blast.classList.add('fire');
+            flash.classList.add('flash-active');
+
+            // Quitar el loader después de la explosión
+            setTimeout(() => {
+                loader.classList.add('hidden');
+            }, 650);
+        }, 2200);
+    });
+
+    // ——————————————————————————————————————
+    // CONFIGURACIÓN — Reemplaza estos valores
+    // ——————————————————————————————————————
+    const CONFIG = {
+        // Google Apps Script Web App URL (del script que conecta con Sheets, Drive y Gmail)
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby6nIgQx4TxXov-X-hqiEdWE_12zoQuKqSWUI4K-pdRjnjouiRDqQz5iVnLURGoN4Ty/exec',
+
+        // Número de WhatsApp de TNTone (sin + ni espacios, ej: 59171234567)
+        TNTONE_WHATSAPP: '59171234567',
+
+        // Correo de la empresa TNTone
+        CORREO_EMPRESA: 'tntone@tuempresa.com'
+    };
+
+    // ——————————————
+    // FONDO CANVAS
+    // ——————————————
+    (function initCanvas() {
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Partículas doradas
+        const particles = [];
+        const ORO = [
+            'rgba(201,168,76,',
+            'rgba(232,201,122,',
+            'rgba(139,105,20,',
+        ];
+
+        for (let i = 0; i < 80; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                r: Math.random() * 1.8 + 0.3,
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.2,
+                alpha: Math.random() * 0.5 + 0.1,
+                color: ORO[Math.floor(Math.random() * ORO.length)],
+            });
+        }
+
+        // Líneas de audio simuladas
+        const waves = [];
+        for (let i = 0; i < 5; i++) {
+            waves.push({
+                phase: Math.random() * Math.PI * 2,
+                amp: 20 + Math.random() * 40,
+                freq: 0.003 + Math.random() * 0.003,
+                speed: 0.008 + Math.random() * 0.006,
+                y: 0.15 + i * 0.18,
+                alpha: 0.03 + Math.random() * 0.05,
+                colorIdx: i % ORO.length
+            });
+        }
+
+        let t = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Fondo degradado profundo
+            const grad = ctx.createRadialGradient(
+                canvas.width * 0.5, canvas.height * 0.3, 0,
+                canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.8
+            );
+            grad.addColorStop(0,   'rgba(30, 22, 4, 0.95)');
+            grad.addColorStop(0.5, 'rgba(14, 11, 2, 0.97)');
+            grad.addColorStop(1,   'rgba(4, 4, 4, 1)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Brillo central suave
+            const glow = ctx.createRadialGradient(
+                canvas.width * 0.5, canvas.height * 0.25, 0,
+                canvas.width * 0.5, canvas.height * 0.25, canvas.width * 0.5
+            );
+            glow.addColorStop(0,   'rgba(201,168,76,0.06)');
+            glow.addColorStop(0.5, 'rgba(201,168,76,0.02)');
+            glow.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ondas de audio
+            waves.forEach(w => {
+                ctx.beginPath();
+                for (let x = 0; x <= canvas.width; x += 3) {
+                    const y = canvas.height * w.y
+                        + Math.sin(x * w.freq + w.phase + t * w.speed) * w.amp
+                        + Math.sin(x * w.freq * 2.3 + w.phase * 1.7 + t * w.speed * 0.7) * (w.amp * 0.35);
+                    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = ORO[w.colorIdx] + w.alpha + ')';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Partículas
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color + p.alpha + ')';
+                ctx.fill();
+            });
+
+            t++;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    })();
+
+    // ——————————————————
+    // DRAG & DROP archivo
+    // ——————————————————
+    const dropZone      = document.getElementById('dropZone');
+    const archivoInput  = document.getElementById('archivoAudio');
+    const filenameDisp  = document.getElementById('filename-display');
+
+    ['dragenter','dragover'].forEach(e => {
+        dropZone.addEventListener(e, ev => {
+            ev.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave','drop'].forEach(e => {
+        dropZone.addEventListener(e, ev => {
+            dropZone.classList.remove('dragover');
+        });
+    });
+
+    dropZone.addEventListener('drop', ev => {
+        ev.preventDefault();
+        if (ev.dataTransfer.files.length) {
+            archivoInput.files = ev.dataTransfer.files;
+            filenameDisp.textContent = '♪ ' + ev.dataTransfer.files[0].name;
+        }
+    });
+
+    archivoInput.addEventListener('change', () => {
+        if (archivoInput.files[0]) {
+            filenameDisp.textContent = '♪ ' + archivoInput.files[0].name;
+        }
+        actualizarProgreso();
+    });
+
+    // ——————————————————
+    // VALIDACIÓN VISUAL + BARRA DE PROGRESO
+    // ——————————————————
+    const camposOrdenados = ['artista', 'demo', 'servicio', 'archivoAudio', 'busca', 'email', 'telefono'];
+    const progressFill   = document.getElementById('progressFill');
+    const progressStep   = document.getElementById('progressStepText');
+    const progressPct    = document.getElementById('progressPercentText');
+
+    function campoEstaLleno(id) {
+        if (id === 'archivoAudio') return archivoInput.files && archivoInput.files.length > 0;
+        const el = document.getElementById(id);
+        if (!el) return false;
+        return el.value.trim().length > 0;
+    }
+
+    function actualizarProgreso() {
+        const completados = camposOrdenados.filter(campoEstaLleno).length;
+        const total = camposOrdenados.length;
+        const pct = Math.round((completados / total) * 100);
+
+        progressFill.style.width = Math.max(pct, 14.28) + '%';
+        progressStep.textContent = 'Paso ' + Math.min(completados + 1, total) + ' de ' + total;
+        progressPct.textContent = pct + '%';
+    }
+
+    function validarEmail(valor) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+    }
+
+    function marcarCampo(input, esValido) {
+        input.classList.remove('campo-valido', 'campo-invalido');
+        const wrapper = input.closest('.field-group');
+        const check = wrapper ? wrapper.querySelector('.field-check') : null;
+        if (check) check.classList.remove('show-valid', 'show-invalid');
+
+        if (input.value.trim() === '') return;
+
+        if (esValido) {
+            input.classList.add('campo-valido');
+            if (check) check.classList.add('show-valid');
+        } else {
+            input.classList.add('campo-invalido');
+            if (check) check.classList.add('show-invalid');
+        }
+    }
+
+    ['artista', 'demo'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => {
+            marcarCampo(el, el.value.trim().length >= 2);
+            actualizarProgreso();
+        });
+    });
+
+    const emailInput = document.getElementById('email');
+    emailInput.addEventListener('input', () => {
+        marcarCampo(emailInput, validarEmail(emailInput.value.trim()));
+        actualizarProgreso();
+    });
+
+    const telefonoInput = document.getElementById('telefono');
+    telefonoInput.addEventListener('input', () => {
+        marcarCampo(telefonoInput, telefonoInput.value.trim().length >= 6);
+        actualizarProgreso();
+    });
+
+    document.getElementById('servicio').addEventListener('change', actualizarProgreso);
+    document.getElementById('busca').addEventListener('input', actualizarProgreso);
+    document.getElementById('codigoPais').addEventListener('change', actualizarProgreso);
+
+    // ——————————————
+    // ENVÍO DE FORM
+    // ——————————————
+    const form           = document.getElementById('mainForm');
+    const btnEnviar       = document.getElementById('btnEnviar');
+    const msgBox          = document.getElementById('msgBox');
+    const loadOverlay     = document.getElementById('loadingOverlay');
+    const confirmOverlay  = document.getElementById('confirmOverlay');
+    const confirmCloseBtn = document.getElementById('confirmCloseBtn');
+
+    confirmCloseBtn.addEventListener('click', () => {
+        confirmOverlay.classList.remove('active');
+    });
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        msgBox.className = 'msg-box';
+
+        const artista   = document.getElementById('artista').value.trim();
+        const demo      = document.getElementById('demo').value.trim();
+        const servicio  = document.getElementById('servicio').value;
+        const busca     = document.getElementById('busca').value.trim();
+        const email     = document.getElementById('email').value.trim();
+        const codigo    = document.getElementById('codigoPais').value;
+        const telefono  = document.getElementById('telefono').value.trim();
+        const archivo   = archivoInput.files[0];
+
+        if (!archivo) {
+            showMsg('Por favor, selecciona un archivo de audio antes de enviar.', 'err');
+            return;
+        }
+
+        if (!validarEmail(email)) {
+            showMsg('Por favor, ingresa un correo electrónico válido.', 'err');
+            return;
+        }
+
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Verificando...';
+        loadOverlay.classList.add('active');
+
+        try {
+            // Verificación reCAPTCHA v3 (invisible)
+            const recaptchaToken = await new Promise((resolve, reject) => {
+                if (typeof grecaptcha === 'undefined') {
+                    resolve(null); // si el script no cargó, continúa sin bloquear el envío
+                    return;
+                }
+                grecaptcha.ready(() => {
+                    grecaptcha.execute('6LchqSwtAAAAAKtXOcjn-ZB80Trx2naPY0kBlQme', { action: 'enviar_demo' })
+                        .then(resolve)
+                        .catch(() => resolve(null));
+                });
+            });
+
+            btnEnviar.textContent = 'Procesando...';
+
+            // Convertir archivo a Base64
+            const base64 = await fileToBase64(archivo);
+
+            const payload = {
+                artista,
+                demo,
+                servicio,
+                busca,
+                email,
+                codigoPais: codigo,
+                telefono,
+                archivoNombre: archivo.name,
+                archivoMime:   archivo.type || 'application/octet-stream',
+                archivoBase64: base64.split(',')[1],
+                fecha: new Date().toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+                recaptchaToken: recaptchaToken
+            };
+
+            const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'ok') {
+                form.reset();
+                filenameDisp.textContent = '';
+                document.querySelectorAll('.campo-valido, .campo-invalido').forEach(el => {
+                    el.classList.remove('campo-valido', 'campo-invalido');
+                });
+                document.querySelectorAll('.field-check').forEach(el => {
+                    el.classList.remove('show-valid', 'show-invalid');
+                });
+                actualizarProgreso();
+                confirmOverlay.classList.add('active');
+            } else {
+                showMsg('Ocurrió un error al enviar. Intenta nuevamente.', 'err');
+            }
+        } catch (err) {
+            console.error(err);
+            showMsg('Error de conexión. Verifica tu internet e intenta de nuevo.', 'err');
+        } finally {
+            loadOverlay.classList.remove('active');
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = 'Enviar Demo';
+        }
+    });
+
+    function fileToBase64(file) {
+        return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.onerror = () => rej(new Error('No se pudo leer el archivo'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showMsg(txt, type) {
+        msgBox.textContent = txt;
+        msgBox.className = 'msg-box ' + type;
+    }
+
+    // Inicializar progreso al cargar
+    actualizarProgreso();
+
+    // ——————————————————
+    // ACORDEÓN FAQ
+    // ——————————————————
+    document.querySelectorAll('.faq-item').forEach(item => {
+        const btn = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+
+        btn.addEventListener('click', () => {
+            const isOpen = item.classList.contains('open');
+
+            // Cerrar todos los demás
+            document.querySelectorAll('.faq-item.open').forEach(other => {
+                if (other !== item) {
+                    other.classList.remove('open');
+                    other.querySelector('.faq-answer').style.maxHeight = null;
+                }
+            });
+
+            if (isOpen) {
+                item.classList.remove('open');
+                answer.style.maxHeight = null;
+            } else {
+                item.classList.add('open');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
